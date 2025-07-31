@@ -1,12 +1,20 @@
 const path = require('path');
 const express = require('express');
+const session = require('express-session');
+const formidable = require('formidable');
 const expressLayouts = require('express-ejs-layouts');
 const { getFortune } = require('./library/fortune');
-const { title } = require('process');
+const credentials = require('./library/credentials');
 
 const port = process.env.PORT || 3100;
 const app = express();
 
+app.use(require('cookie-parser')(credentials.cookieSecret));
+app.use(session({
+  secret: credentials.cookieSecret,
+  resave: false,
+  saveUninitialized: false
+}));
 // app.use(express.urlencoded({ extended: false }));
 // app.use(express.json());
 app.use(require('body-parser').urlencoded({ extended: true }));
@@ -25,6 +33,25 @@ app.use((req, res, next) => {
   res.locals.showTests = app.get('env') !== 'production' && req.query.test === '1';
   next();
 });
+
+ app.use(function(req, res, next){
+  // if there's a flash message, transfer
+  // it to the context, then clear it
+  res.locals.flash = req.session.flash;
+  delete req.session.flash;
+  next();
+});
+
+app.get('/set-flash', (req, res) => {
+  req.session.flash = {
+    type: 'danger',
+    intro: 'Welcome back!',
+    message: 'We missed you while you were away.'
+  };
+
+  return res.redirect('/');
+});
+
 
 app.get('/', (req, res) => {
   return res.render('index',
@@ -71,6 +98,45 @@ app.post('/process', function(req, res){
 });
 app.get('/thank-you', (req, res) => {
   return res.render('thank-you', { title: 'Thank You' });
+});
+app.get('/contest/vacation-photo',function(req,res){
+  const now = new Date();
+
+  return res.render('vacation-photo',{
+    year: now.getFullYear(), month: now.getMonth(), showTests: undefined, title: 'Photo Contest'
+  });
+});
+app.post('/contest/vacation-photo/:year/:month', function(req, res) {
+  const form = new formidable.IncomingForm({
+    multiples: false,
+    uploadDir: path.join(__dirname, 'public/uploads'),
+    keepExtensions: true, // mantiene la extensión original
+  });
+  
+  form.parse(req, function(err, fields, files){
+    if(err) return res.redirect(303, '/error');
+
+    console.log('received fields:');
+    console.log(fields);
+    console.log('received files:');
+    console.log(files);
+    const imageFile = files.photo?.[0];
+    const imageUrl = '/uploads/' + imageFile.newFilename;
+
+
+    // res.render('upload-success', {
+    //   title: 'Imagen subida',
+    //   imageUrl: `/uploads/${filename}`
+    // });
+
+    res.redirect(303, '/upload-success?file=' + imageUrl + '&fileName=' + imageUrl);
+  });
+});
+
+app.get('/upload-success', (req, res) => {
+  const filename = req.query.fileName;
+
+  return res.render('upload-success', { title: 'Upload Successful', filename: filename, showTests: undefined });
 });
 
 app.use((req, res) => {
