@@ -42,6 +42,13 @@ app.use((req, res, next) => {
   next();
 });
 
+const PostModel = require('./models/post.model');
+const PostService = require('./services/post.service');
+const PostController = require('./controllers/post.controller');
+const postService = new PostService(PostModel);
+const postController = new PostController(postService);
+
+
 app.get('/set-flash', (req, res) => {
   req.session.flash = {
     type: 'danger',
@@ -53,14 +60,9 @@ app.get('/set-flash', (req, res) => {
 });
 
 
-app.get('/', (req, res) => {
-  return res.render('index',
-    {
-      title: 'Express app using ejs',
-      pageTestScript: 'tests-global',
-    }
-  );
-});
+app.get('/', postController.getPosts.bind(postController));
+app.post('/posts/create', postController.submitPost.bind(postController));
+app.get('/posts/create', postController.createPosts.bind(postController));
 
 app.get('/about', (req, res) => {
   return res.render('about',

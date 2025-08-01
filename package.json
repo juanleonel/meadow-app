@@ -7,7 +7,8 @@
     "express": "^5.1.0",
     "express-ejs-layouts": "^2.5.1",
     "express-session": "^1.18.2",
-    "formidable": "^3.5.4"
+    "formidable": "^3.5.4",
+    "mongoose": "^8.17.0"
   },
   "name": "meadowlark",
   "version": "1.0.0",
