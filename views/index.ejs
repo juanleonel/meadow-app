@@ -2,33 +2,27 @@
 <%- include('partials/navbar') %>
 
 <div class="container">
-  <!-- <div class="row">
-    <div class="col-12">
-      <h1>Welcome to Meadowlark Travel</h1>
-      <p>Explore our latest posts below:</p>
-    </div>
-  </div> -->
-
   <div class="row justify-content-md-center">
     <% posts.forEach(post => { %>
       <div class="col-sm-12 col-md-8 col-lg-8 mb-4">
         <div class="card h-100">
           <img class="card-img-top" alt="..." src="<%= post.image || '/uploads/composicion-de-deporte-con-elementos-modernos.jpg' %>">
           <div class="card-body d-flex flex-column">
-            <!-- Iconos -->
            <div class="d-flex justify-content-start gap-3 mb-3">
-            <span class="text-danger">
-              <i class="bi bi-heart-fill"></i> 12
-            </span>
-            <span class="text-secondary">
-              <i class="bi bi-chat-dots-fill"></i> 5
-            </span>
+              <a href="/post/like/<%= post.id %>" class="text-decoration-none text-danger">
+                <span>
+                  <i class="bi bi-heart-fill"></i> 12
+                </span>
+              </a>
+              <a href="/post/<%= post.id %>/comments" class="text-decoration-none text-secondary">
+                <span>
+                  <i class="bi bi-chat-dots-fill"></i> 5
+                </span>
+              </a>
+            </div>
+            <p class="card-text"><%= post.content.substring(0, 100) %>...</p>
+            <small class="text-muted mb-2">Posted on: <%= post.createdAt.toLocaleDateString() %></small>
           </div>
-          <p class="card-text"><%= post.content.substring(0, 100) %>...</p>
-          <small class="text-muted mb-2">Posted on: <%= post.createdAt.toLocaleDateString() %></small>
-          
-          </div>
-
         </div>
       </div>
     <% }) %>

@@ -2,9 +2,15 @@ const path = require('path');
 const express = require('express');
 const session = require('express-session');
 const formidable = require('formidable');
+const passport = require('passport');
+const flash = require('connect-flash');
+
 const expressLayouts = require('express-ejs-layouts');
 const { getFortune } = require('./library/fortune');
 const credentials = require('./library/credentials');
+const authRoutes = require('./routes/auth');
+const { ensureAuthenticated } = require('./middlewares/auth');
+require('./library/passport')(passport);
 
 const port = process.env.PORT || 3100;
 const app = express();
@@ -15,39 +21,52 @@ app.use(session({
   resave: false,
   saveUninitialized: false
 }));
-// app.use(express.urlencoded({ extended: false }));
-// app.use(express.json());
+app.use(flash());
+app.use(passport.initialize());
+app.use(passport.session());
 app.use(require('body-parser').urlencoded({ extended: true }));
 app.use(require('body-parser').json());
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-
+app.use(expressLayouts);
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/css', express.static(path.join(__dirname, 'node_modules/bootstrap/dist/css')));
 app.use('/js', express.static(path.join(__dirname, 'node_modules/bootstrap/dist/js')));
-
-app.use(expressLayouts);
 
 app.use((req, res, next) => {
   res.locals.showTests = app.get('env') !== 'production' && req.query.test === '1';
   next();
 });
 
- app.use(function(req, res, next){
-  // if there's a flash message, transfer
-  // it to the context, then clear it
+app.use(function(req, res, next){
+  const passportError = req.flash('error');
+
+  if (passportError.length > 0) {
+    req.session.flash = {
+      type: 'danger',
+      intro: 'Login failed!',
+      message: passportError[0]
+    };
+  }
+
   res.locals.flash = req.session.flash;
   delete req.session.flash;
   next();
 });
 
+app.use('/', authRoutes);
+
+
+// Models and Controllers
 const PostModel = require('./models/post.model');
 const PostService = require('./services/post.service');
+const CommentModel = require('./models/comment.model');
+const CommentService = require('./services/comment.service');
+const commentService = new CommentService(CommentModel);
 const PostController = require('./controllers/post.controller');
 const postService = new PostService(PostModel);
-const postController = new PostController(postService);
-
+const postController = new PostController(postService, commentService);
 
 app.get('/set-flash', (req, res) => {
   req.session.flash = {
@@ -59,10 +78,11 @@ app.get('/set-flash', (req, res) => {
   return res.redirect('/');
 });
 
-
-app.get('/', postController.getPosts.bind(postController));
-app.post('/posts/create', postController.submitPost.bind(postController));
-app.get('/posts/create', postController.createPosts.bind(postController));
+app.get('/', ensureAuthenticated, postController.getPosts.bind(postController));
+app.post('/posts/create', ensureAuthenticated, postController.submitPost.bind(postController));
+app.get('/posts/create', ensureAuthenticated, postController.createPosts.bind(postController));
+app.post('/post/:id/comments', ensureAuthenticated, postController.createComment.bind(postController));
+app.get('/post/:id/comments', ensureAuthenticated, postController.getComments.bind(postController));
 
 app.get('/about', (req, res) => {
   return res.render('about',
@@ -149,7 +169,6 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).render('error', { title: '500: Server Error' });
 });
-
 
 app.listen(port, () => {
   console.log('Express started on http://localhost:' + port + ' ');

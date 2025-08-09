@@ -1,6 +1,17 @@
-<% if (flash) { %>
-  <div class="alert alert-<%= flash.type %> alert-dismissible fade show" role="alert">
-    <strong><%= flash.intro %></strong> <%= flash.message %>
+<% if (flash && flash.message) { %>
+  <div class="alert alert-<%= flash.type %> alert-dismissible fade show mb-0" role="alert">
+    <strong><%= flash.intro %></strong>
+
+    <% if(typeof flash.message === 'string') { %>
+      <%= flash.message %>
+    <% } else if (typeof flash.message !== 'undefined') { %>
+      <ul>
+        <% flash.message.forEach(function(msg) { %>
+          <li><%= msg %></li>
+        <% }) %>
+      </ul>
+    <% } %>
+
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
   </div>
 <% } %>
